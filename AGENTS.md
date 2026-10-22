@@ -1,0 +1,3 @@
+- Stack: TanStack Start (React + Node server functions) with SQL Server via `mssql`. Server-only code lives in `src/server/*.server.ts` and is loaded with `await import(...)` inside server functions; schema changes go in `database/schema.sql` and must stay idempotent.
+- Keep quotation preparation staff in a dedicated master list and store the staff name as text on each quotation; why: preparation staff do not need login accounts and historical names must survive renames.
+- Centralize client matching, manual number normalization and daily access counting in browser-safe quotation rules (`src/lib/quotation-rules.ts`); why: forms and future email triggers must use the same tested rules.
