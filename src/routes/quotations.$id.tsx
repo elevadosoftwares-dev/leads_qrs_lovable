@@ -3,21 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Eye, Download, Trash2, Plus, FileText } from "lucide-react";
 import { AppShell, Card, StatusBadge, btnGhost, inputCls } from "@/components/AppShell";
 import { PdfPreview, downloadAttachment } from "@/components/PdfPreview";
-import { canDelete, canEdit, type Status } from "@/lib/permissions";
-import { useAction, useQuotation, useSession } from "@/lib/queries";
-import {
-  CATEGORIES,
-  addAttachments,
-  deleteAttachment,
-  deleteQuotation,
-  logAccess,
-  updateQuotationStatus,
-  type AccessAction,
-  type Attachment,
-} from "@/lib/quotations.functions";
-import { uploadForm } from "@/lib/uploads";
+import { useStore, canDelete, canEdit, type Attachment, type Status } from "@/lib/store";
+import { readFiles, CATEGORIES } from "@/lib/files";
 
-export const Route = createFileRoute("/_authenticated/quotations/$id")({
+export const Route = createFileRoute("/quotations/$id")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -33,30 +22,20 @@ export const Route = createFileRoute("/_authenticated/quotations/$id")({
 
 function Detail() {
   const { id } = Route.useParams();
-  const { session } = useSession();
-  const { data: q, isPending } = useQuotation(id);
-  const run = useAction();
+  const { data, update, session, ready, logAccess } = useStore();
   const navigate = useNavigate();
   const [preview, setPreview] = useState<Attachment | null>(null);
-  const [cat, setCat] = useState(CATEGORIES[1] ?? "");
+  const [cat, setCat] = useState(CATEGORIES[1]);
   const logged = useRef("");
+  const q = data.quotations.find((x) => x.id === id);
 
-  const track = (action: AccessAction) =>
-    void run(() => logAccess({ data: { quotationId: id, action } }), "quotations");
   useEffect(() => {
-    if (q && logged.current !== q.id) {
+    if (ready && q && session && logged.current !== q.id) {
       logged.current = q.id;
-      track("View");
+      logAccess(q.id, "View");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q?.id]);
+  }, [ready, q, session, logAccess]);
 
-  if (isPending)
-    return (
-      <AppShell title="Loading…">
-        <p />
-      </AppShell>
-    );
   if (!q)
     return (
       <AppShell title="Quotation not found">
@@ -65,29 +44,36 @@ function Detail() {
         </Link>
       </AppShell>
     );
+  const company = data.companies.find((c) => c.id === q.companyId);
+  const client = data.clients.find((c) => c.id === q.clientId);
+  const project = data.projects.find((p) => p.id === q.projectId);
+  const bdm = data.bdms.find((b) => b.id === q.preparedForId);
+  const logs = data.logs.filter((l) => l.quotationId === q.id);
   const admin = canEdit(session?.role);
 
-  const patch = (status: Status, failReason: string) =>
-    void run(() => updateQuotationStatus({ data: { id: q.id, status, failReason } }), "quotations");
+  const patch = (p: Partial<typeof q>) =>
+    update((d) => ({
+      ...d,
+      quotations: d.quotations.map((x) => (x.id === q.id ? { ...x, ...p } : x)),
+    }));
 
   const rows: [string, string | undefined][] = [
-    ["Lead Group of Company", q.companyName],
-    ["Client", q.clientName],
-    ["Project", q.projectName],
-    ["Point of contact", `${q.pocName} · ${q.pocPhone}`],
+    ["Lead Group of Company", company?.name],
+    ["Client", client?.name],
+    ["Project", project?.name],
+    ["Point of contact", `${project?.pocName ?? ""} · ${project?.pocPhone ?? ""}`],
     ["Site reference", q.siteReference],
-    ["Prepared for (Leads BDM)", q.preparedForName],
+    ["Prepared for (Leads BDM)", bdm?.name],
     ["Prepared by / Added by", q.preparedBy],
     ["Note-1", q.note1],
     ["Note-2", q.note2 || "—"],
     ["Created", new Date(q.createdAt).toLocaleString()],
   ];
-  const accessCount = q.views + q.previews + q.downloads;
 
   return (
     <AppShell
       title={q.number}
-      subtitle={`${q.clientName} · ${q.projectName}`}
+      subtitle={`${client?.name ?? ""} · ${project?.name ?? ""}`}
       actions={
         <div className="flex gap-2">
           <Link to="/quotations" search={{}} className={btnGhost}>
@@ -97,12 +83,15 @@ function Detail() {
           {canDelete(session?.role) && (
             <button
               className={`${btnGhost} text-destructive`}
-              onClick={async () => {
-                if (
-                  confirm("Delete this quotation permanently?") &&
-                  (await run(() => deleteQuotation({ data: { id: q.id } }), "quotations")).ok
-                )
+              onClick={() => {
+                if (confirm("Delete this quotation permanently?")) {
+                  update((d) => ({
+                    ...d,
+                    quotations: d.quotations.filter((x) => x.id !== q.id),
+                    logs: d.logs.filter((l) => l.quotationId !== q.id),
+                  }));
                   navigate({ to: "/quotations", search: {} });
+                }
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -132,7 +121,7 @@ function Detail() {
                   <select
                     className={`${inputCls} mt-1`}
                     value={q.status}
-                    onChange={(e) => patch(e.target.value as Status, q.failReason)}
+                    onChange={(e) => patch({ status: e.target.value as Status })}
                   >
                     <option>Pending</option>
                     <option>Successful</option>
@@ -145,21 +134,19 @@ function Detail() {
                     <input
                       className={`${inputCls} mt-1`}
                       defaultValue={q.failReason}
-                      onBlur={(e) =>
-                        e.target.value !== q.failReason && patch(q.status, e.target.value)
-                      }
+                      onBlur={(e) => patch({ failReason: e.target.value })}
                     />
                   </label>
                 )}
               </div>
             )}
           </Card>
-          <Card title={`Access History (${accessCount})`} tone="success">
-            {q.logs.length === 0 ? (
+          <Card title={`Access History (${logs.length})`} tone="success">
+            {logs.length === 0 ? (
               <p className="text-sm text-muted-foreground">No access yet.</p>
             ) : (
               <ul className="divide-y text-sm">
-                {q.logs.map((l) => (
+                {logs.slice(0, 30).map((l) => (
                   <li key={l.id} className="flex justify-between py-2">
                     <span>
                       <b>{l.user}</b> · {l.action}
@@ -190,7 +177,7 @@ function Detail() {
                   className="rounded-md p-1.5 text-primary hover:bg-info-soft"
                   onClick={() => {
                     setPreview(a);
-                    track("Preview");
+                    logAccess(q.id, "Preview");
                   }}
                 >
                   <Eye className="h-4 w-4" />
@@ -200,7 +187,7 @@ function Detail() {
                   className="rounded-md p-1.5 text-success hover:bg-success-soft"
                   onClick={() => {
                     downloadAttachment(a);
-                    track("Download");
+                    logAccess(q.id, "Download");
                   }}
                 >
                   <Download className="h-4 w-4" />
@@ -211,7 +198,7 @@ function Detail() {
                     className="rounded-md p-1.5 text-destructive hover:bg-danger-soft"
                     onClick={() =>
                       confirm("Remove this file?") &&
-                      void run(() => deleteAttachment({ data: { id: a.id } }), "quotations")
+                      patch({ attachments: q.attachments.filter((x) => x.id !== a.id) })
                     }
                   >
                     <Trash2 className="h-4 w-4" />
@@ -236,13 +223,9 @@ function Detail() {
                   multiple
                   className="hidden"
                   onChange={async (e) => {
-                    const form = uploadForm(
-                      Array.from(e.target.files ?? []).map((file) => ({ file, category: cat })),
-                    );
+                    const a = await readFiles(e.target.files, cat ?? "", session?.name ?? "");
+                    patch({ attachments: [...q.attachments, ...a] });
                     e.target.value = "";
-                    if (!form) return;
-                    form.set("id", q.id);
-                    await run(() => addAttachments({ data: form }), "quotations");
                   }}
                 />
               </label>
@@ -256,7 +239,7 @@ function Detail() {
         onDownload={() => {
           if (preview) {
             downloadAttachment(preview);
-            track("Download");
+            logAccess(q.id, "Download");
           }
         }}
       />

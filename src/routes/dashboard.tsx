@@ -3,9 +3,9 @@ import { FileText, XCircle, Clock, Eye, Search } from "lucide-react";
 import { AppShell, Card, StatusBadge, inputCls } from "@/components/AppShell";
 import { useState } from "react";
 import { matchesClientName } from "@/lib/quotation-rules";
-import { useQuotations } from "@/lib/queries";
+import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -20,9 +20,14 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const { data: quotations = [] } = useQuotations();
+  const { data } = useStore();
   const [search, setSearch] = useState("");
-  const q = quotations.filter((q) => matchesClientName(q.clientName, search));
+  const q = data.quotations.filter((q) =>
+    matchesClientName(data.clients.find((c) => c.id === q.clientId)?.name ?? "", search),
+  );
+  const name = (arr: { id: string; name: string }[], id: string) =>
+    arr.find((x) => x.id === id)?.name ?? "—";
+  const count = (id: string) => data.logs.filter((l) => l.quotationId === id).length;
   const stats = [
     {
       label: "Pending",
@@ -79,30 +84,35 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground">No quotations found for this client.</p>
           )}
           <ul className="divide-y">
-            {q.slice(0, search.trim() ? q.length : 6).map((x) => (
-              <li key={x.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <Link
-                    to="/quotations/$id"
-                    params={{ id: x.id }}
-                    className="font-semibold text-primary"
-                  >
-                    {x.number}
-                  </Link>
-                  <span className="block font-medium sm:ml-2 sm:inline">{x.clientName}</span>
-                  <div className="truncate text-sm text-muted-foreground">
-                    {x.projectName} · {x.companyName}
+            {[...q]
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+              .slice(0, search.trim() ? q.length : 6)
+              .map((x) => (
+                <li key={x.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <Link
+                      to="/quotations/$id"
+                      params={{ id: x.id }}
+                      className="font-semibold text-primary"
+                    >
+                      {x.number}
+                    </Link>
+                    <span className="block font-medium sm:ml-2 sm:inline">
+                      {name(data.clients, x.clientId)}
+                    </span>
+                    <div className="truncate text-sm text-muted-foreground">
+                      {name(data.projects, x.projectId)} · {name(data.companies, x.companyId)}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
-                    <Eye className="h-3 w-3" />
-                    {x.views + x.previews + x.downloads}
-                  </span>
-                  <StatusBadge status={x.status} />
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+                      <Eye className="h-3 w-3" />
+                      {count(x.id)}
+                    </span>
+                    <StatusBadge status={x.status} />
+                  </div>
+                </li>
+              ))}
           </ul>
         </Card>
       </div>

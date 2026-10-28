@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canDelete, canEdit } from "@/lib/permissions";
+import { canDelete, canEdit } from "@/lib/store";
 
 describe("quotation permissions", () => {
   it("only Admin can delete quotations", () => {

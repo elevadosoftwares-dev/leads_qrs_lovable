@@ -1,13 +1,25 @@
+import { useEffect, useState } from "react";
 import { X, Download } from "lucide-react";
-import type { Attachment } from "@/lib/quotations.functions";
+import type { Attachment } from "@/lib/store";
 
-export const attachmentUrl = (a: Attachment) => `/api/attachments/${a.id}`;
+/** Turns a data: URL into a blob: URL; stored files already have a URL and are returned as is. */
+export function dataUrlToBlobUrl(dataUrl: string) {
+  if (!dataUrl.startsWith("data:")) return dataUrl;
+  const [meta = "", b64 = ""] = dataUrl.split(",");
+  const mime = meta.match(/:(.*?);/)?.[1] ?? "application/pdf";
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([arr], { type: mime }));
+}
 
 export function downloadAttachment(a: Attachment) {
+  const url = dataUrlToBlobUrl(a.dataUrl);
   const link = document.createElement("a");
-  link.href = `${attachmentUrl(a)}?download=1`;
+  link.href = url;
   link.download = a.name;
   link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 export function PdfPreview({
@@ -19,6 +31,13 @@ export function PdfPreview({
   onClose: () => void;
   onDownload: () => void;
 }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file) return;
+    const u = dataUrlToBlobUrl(file.dataUrl);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
   if (!file) return null;
   return (
     <div
@@ -44,7 +63,7 @@ export function PdfPreview({
             </button>
           </div>
         </div>
-        <iframe src={attachmentUrl(file)} title={file.name} className="flex-1" />
+        {url && <iframe src={url} title={file.name} className="flex-1" />}
       </div>
     </div>
   );

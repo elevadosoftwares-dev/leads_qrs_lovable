@@ -3,11 +3,12 @@ import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server
 
 import { request, sql } from "./db.server";
 import { newSessionToken, sha256Hex } from "./crypto.server";
-import type { Role } from "@/lib/permissions";
 
 const COOKIE_NAME = "qrs_session";
 const SESSION_DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type Role = "Admin" | "User";
 
 export type SessionUser = {
   id: string;
@@ -33,7 +34,7 @@ export async function createSession(userId: string): Promise<void> {
   const req = await request();
   await req
     .input("token_hash", sql.Char(64), sha256Hex(token))
-    .input("user_id", sql.UniqueIdentifier, userId)
+    .input("user_id", sql.NVarChar(40), userId)
     .input("expires_at", sql.DateTime2(3), expires)
     .query(
       `DELETE FROM dbo.sessions WHERE expires_at < SYSUTCDATETIME();
@@ -49,17 +50,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const tokenHash = sha256Hex(token);
 
   const req = await request();
-  const { recordset } = await req.input("token_hash", sql.Char(64), tokenHash).query<{
-    id: string;
-    username: string;
-    full_name: string;
-    role: Role;
-    expires_at: Date;
-  }>(
-    `SELECT u.id, u.username, u.full_name, u.role, s.expires_at
+  const { recordset } = await req
+    .input("token_hash", sql.Char(64), tokenHash)
+    .query<SessionUser & { expires_at: Date }>(
+      `SELECT u.id, u.username, u.name, u.role, s.expires_at
        FROM dbo.sessions s JOIN dbo.users u ON u.id = s.user_id
       WHERE s.token_hash = @token_hash AND s.expires_at > SYSUTCDATETIME()`,
-  );
+    );
   const row = recordset[0];
   if (!row) return null;
 
@@ -73,7 +70,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     setCookie(COOKIE_NAME, token, cookieOptions(expires));
   }
 
-  return { id: row.id.toLowerCase(), username: row.username, name: row.full_name, role: row.role };
+  return { id: row.id, username: row.username, name: row.name, role: row.role };
 }
 
 export async function destroySession(): Promise<void> {

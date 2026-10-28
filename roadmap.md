@@ -1,0 +1,6 @@
+- [x] Update dashboard search and remove requested section/subtitle.
+- [x] Update quotation fields, company labels, clients/projects and staff master list.
+- [x] Set and test five-distinct-quotations daily access rule in Singapore time.
+- [ ] Wire and verify actual email alerts — blocked by the user's email domain setup; sending is not implemented yet.
+- [x] Run seven focused tests and verify creation, persistence, staff selection and dashboard client search.
+- [x] Trim dashboard tiles to Pending and Unsuccessful / Failed, at half their original size.

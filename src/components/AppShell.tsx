@@ -1,6 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   LayoutDashboard,
   FileText,
@@ -12,8 +11,7 @@ import {
   LogOut,
   Briefcase,
 } from "lucide-react";
-import { signOut } from "@/lib/auth.functions";
-import { useSession } from "@/lib/queries";
+import { useStore } from "@/lib/store";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,17 +38,14 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const { session, isAdmin } = useSession();
-  const queryClient = useQueryClient();
+  const { session, ready, logout, isAdmin } = useStore();
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
-  if (!session) return null;
-  const logout = async () => {
-    await signOut();
-    queryClient.clear();
-    navigate({ to: "/" });
-  };
+  useEffect(() => {
+    if (ready && !session) navigate({ to: "/" });
+  }, [ready, session, navigate]);
+  if (!ready || !session) return null;
 
   const item = (n: { to: string; label: string; icon: typeof FileText }) => {
     const active = path.startsWith(n.to);
@@ -98,7 +93,10 @@ export function AppShell({
             {session.role === "User" ? " · view only" : ""}
           </div>
           <button
-            onClick={logout}
+            onClick={async () => {
+              await logout();
+              navigate({ to: "/" });
+            }}
             className="flex items-center gap-2 text-sm opacity-80 hover:opacity-100"
           >
             <LogOut className="h-4 w-4" /> Sign out

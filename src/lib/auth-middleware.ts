@@ -12,6 +12,6 @@ export const requireAuth = createMiddleware({ type: "function" }).server(async (
 export const requireAdmin = createMiddleware({ type: "function" })
   .middleware([requireAuth])
   .server(async ({ next, context }) => {
-    if (context.user.role !== "Admin") throw new Error("Only Admins can perform this action.");
+    if (context.user.role !== "Admin") throw new Error("You have view-only access.");
     return next();
   });

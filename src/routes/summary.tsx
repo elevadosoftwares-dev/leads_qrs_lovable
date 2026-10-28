@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell, Card, StatusBadge, inputCls } from "@/components/AppShell";
-import { useMasters, useQuotations } from "@/lib/queries";
+import { useStore } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/summary")({
+export const Route = createFileRoute("/summary")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -18,28 +18,35 @@ export const Route = createFileRoute("/_authenticated/summary")({
 });
 
 function Summary() {
-  const { companies, clients } = useMasters();
-  const { data: quotations = [] } = useQuotations();
+  const { data } = useStore();
   const [company, setCompany] = useState("");
   const [client, setClient] = useState("");
   const [search, setSearch] = useState("");
-  const rows = quotations.filter(
+  const name = (arr: { id: string; name: string }[], id: string) =>
+    arr.find((x) => x.id === id)?.name ?? "—";
+  const rows = data.quotations.filter(
     (q) =>
       (!company || q.companyId === company) &&
       (!client || q.clientId === client) &&
       (!search ||
-        [q.number, q.clientName, q.projectName, q.siteReference]
+        [
+          q.number,
+          name(data.clients, q.clientId),
+          name(data.projects, q.projectId),
+          q.siteReference,
+        ]
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase())),
   );
+  const logsFor = (id: string) => data.logs.filter((l) => l.quotationId === id);
 
   return (
     <AppShell title="Quotation Summary" subtitle="See who accessed a quotation, how and when">
       <div className="mb-6 grid gap-3 rounded-xl border bg-card p-4 shadow-card sm:grid-cols-3">
         <select className={inputCls} value={company} onChange={(e) => setCompany(e.target.value)}>
           <option value="">All Group Companies</option>
-          {companies.map((c) => (
+          {data.companies.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -47,7 +54,7 @@ function Summary() {
         </select>
         <select className={inputCls} value={client} onChange={(e) => setClient(e.target.value)}>
           <option value="">All Clients</option>
-          {clients.map((c) => (
+          {data.clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -83,45 +90,47 @@ function Summary() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rows.map((q) => (
-                <tr key={q.id}>
-                  <td className="px-4 py-3">
-                    <Link
-                      to="/quotations/$id"
-                      params={{ id: q.id }}
-                      className="rounded-md bg-info-soft px-2 py-0.5 font-semibold text-primary"
-                    >
-                      {q.number}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">{q.companyName}</td>
-                  <td className="px-4 py-3 font-semibold">{q.clientName}</td>
-                  <td className="px-4 py-3">{q.projectName}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={q.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-info-soft px-2 py-0.5 font-semibold text-primary">
-                      {q.views}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-teal-soft px-2 py-0.5 font-semibold text-teal">
-                      {q.previews}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-success-soft px-2 py-0.5 font-semibold text-success">
-                      {q.downloads}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {q.lastAccessAt
-                      ? `${q.lastAccessBy} · ${new Date(q.lastAccessAt).toLocaleString()}`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
+              {rows.map((q) => {
+                const l = logsFor(q.id);
+                const c = (a: string) => l.filter((x) => x.action === a).length;
+                return (
+                  <tr key={q.id}>
+                    <td className="px-4 py-3">
+                      <Link
+                        to="/quotations/$id"
+                        params={{ id: q.id }}
+                        className="rounded-md bg-info-soft px-2 py-0.5 font-semibold text-primary"
+                      >
+                        {q.number}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">{name(data.companies, q.companyId)}</td>
+                    <td className="px-4 py-3 font-semibold">{name(data.clients, q.clientId)}</td>
+                    <td className="px-4 py-3">{name(data.projects, q.projectId)}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={q.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-info-soft px-2 py-0.5 font-semibold text-primary">
+                        {c("View")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-teal-soft px-2 py-0.5 font-semibold text-teal">
+                        {c("Preview")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-success-soft px-2 py-0.5 font-semibold text-success">
+                        {c("Download")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {l[0] ? `${l[0].user} · ${new Date(l[0].at).toLocaleString()}` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

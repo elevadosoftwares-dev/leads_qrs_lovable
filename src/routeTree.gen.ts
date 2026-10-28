@@ -10,145 +10,130 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedMailSettingsRouteImport } from './routes/_authenticated/mail-settings'
-import { Route as AuthenticatedSummaryRouteImport } from './routes/_authenticated/summary'
-import { Route as AuthenticatedMastersBdmsRouteImport } from './routes/_authenticated/masters.bdms'
-import { Route as AuthenticatedMastersClientsRouteImport } from './routes/_authenticated/masters.clients'
-import { Route as AuthenticatedMastersCompaniesRouteImport } from './routes/_authenticated/masters.companies'
-import { Route as AuthenticatedMastersPreparersRouteImport } from './routes/_authenticated/masters.preparers'
-import { Route as AuthenticatedMastersUsersRouteImport } from './routes/_authenticated/masters.users'
-import { Route as AuthenticatedQuotationsIndexRouteImport } from './routes/_authenticated/quotations.index'
-import { Route as AuthenticatedQuotationsIdRouteImport } from './routes/_authenticated/quotations.$id'
-import { Route as AuthenticatedQuotationsNewRouteImport } from './routes/_authenticated/quotations.new'
-import { Route as ApiAttachmentsIdRouteImport } from './routes/api/attachments/$id'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as MailSettingsRouteImport } from './routes/mail-settings'
+import { Route as SummaryRouteImport } from './routes/summary'
+import { Route as MastersBdmsRouteImport } from './routes/masters.bdms'
+import { Route as MastersClientsRouteImport } from './routes/masters.clients'
+import { Route as MastersCompaniesRouteImport } from './routes/masters.companies'
+import { Route as MastersPreparersRouteImport } from './routes/masters.preparers'
+import { Route as MastersUsersRouteImport } from './routes/masters.users'
+import { Route as QuotationsIndexRouteImport } from './routes/quotations.index'
+import { Route as QuotationsIdRouteImport } from './routes/quotations.$id'
+import { Route as QuotationsNewRouteImport } from './routes/quotations.new'
+import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedMailSettingsRoute =
-  AuthenticatedMailSettingsRouteImport.update({
-    id: '/mail-settings',
-    path: '/mail-settings',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedSummaryRoute = AuthenticatedSummaryRouteImport.update({
+const MailSettingsRoute = MailSettingsRouteImport.update({
+  id: '/mail-settings',
+  path: '/mail-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SummaryRoute = SummaryRouteImport.update({
   id: '/summary',
   path: '/summary',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedMastersBdmsRoute =
-  AuthenticatedMastersBdmsRouteImport.update({
-    id: '/masters/bdms',
-    path: '/masters/bdms',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMastersClientsRoute =
-  AuthenticatedMastersClientsRouteImport.update({
-    id: '/masters/clients',
-    path: '/masters/clients',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMastersCompaniesRoute =
-  AuthenticatedMastersCompaniesRouteImport.update({
-    id: '/masters/companies',
-    path: '/masters/companies',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMastersPreparersRoute =
-  AuthenticatedMastersPreparersRouteImport.update({
-    id: '/masters/preparers',
-    path: '/masters/preparers',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedMastersUsersRoute =
-  AuthenticatedMastersUsersRouteImport.update({
-    id: '/masters/users',
-    path: '/masters/users',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedQuotationsIndexRoute =
-  AuthenticatedQuotationsIndexRouteImport.update({
-    id: '/quotations/',
-    path: '/quotations/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedQuotationsIdRoute =
-  AuthenticatedQuotationsIdRouteImport.update({
-    id: '/quotations/$id',
-    path: '/quotations/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedQuotationsNewRoute =
-  AuthenticatedQuotationsNewRouteImport.update({
-    id: '/quotations/new',
-    path: '/quotations/new',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
-  id: '/api/attachments/$id',
-  path: '/api/attachments/$id',
+const MastersBdmsRoute = MastersBdmsRouteImport.update({
+  id: '/masters/bdms',
+  path: '/masters/bdms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MastersClientsRoute = MastersClientsRouteImport.update({
+  id: '/masters/clients',
+  path: '/masters/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MastersCompaniesRoute = MastersCompaniesRouteImport.update({
+  id: '/masters/companies',
+  path: '/masters/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MastersPreparersRoute = MastersPreparersRouteImport.update({
+  id: '/masters/preparers',
+  path: '/masters/preparers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MastersUsersRoute = MastersUsersRouteImport.update({
+  id: '/masters/users',
+  path: '/masters/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotationsIndexRoute = QuotationsIndexRouteImport.update({
+  id: '/quotations/',
+  path: '/quotations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotationsIdRoute = QuotationsIdRouteImport.update({
+  id: '/quotations/$id',
+  path: '/quotations/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuotationsNewRoute = QuotationsNewRouteImport.update({
+  id: '/quotations/new',
+  path: '/quotations/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesSplatRoute = ApiFilesSplatRouteImport.update({
+  id: '/api/files/$',
+  path: '/api/files/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/mail-settings': typeof AuthenticatedMailSettingsRoute
-  '/summary': typeof AuthenticatedSummaryRoute
-  '/masters/bdms': typeof AuthenticatedMastersBdmsRoute
-  '/masters/clients': typeof AuthenticatedMastersClientsRoute
-  '/masters/companies': typeof AuthenticatedMastersCompaniesRoute
-  '/masters/preparers': typeof AuthenticatedMastersPreparersRoute
-  '/masters/users': typeof AuthenticatedMastersUsersRoute
-  '/quotations/$id': typeof AuthenticatedQuotationsIdRoute
-  '/quotations/new': typeof AuthenticatedQuotationsNewRoute
-  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
-  '/quotations/': typeof AuthenticatedQuotationsIndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/mail-settings': typeof MailSettingsRoute
+  '/summary': typeof SummaryRoute
+  '/masters/bdms': typeof MastersBdmsRoute
+  '/masters/clients': typeof MastersClientsRoute
+  '/masters/companies': typeof MastersCompaniesRoute
+  '/masters/preparers': typeof MastersPreparersRoute
+  '/masters/users': typeof MastersUsersRoute
+  '/quotations/$id': typeof QuotationsIdRoute
+  '/quotations/new': typeof QuotationsNewRoute
+  '/quotations/': typeof QuotationsIndexRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/mail-settings': typeof AuthenticatedMailSettingsRoute
-  '/summary': typeof AuthenticatedSummaryRoute
-  '/masters/bdms': typeof AuthenticatedMastersBdmsRoute
-  '/masters/clients': typeof AuthenticatedMastersClientsRoute
-  '/masters/companies': typeof AuthenticatedMastersCompaniesRoute
-  '/masters/preparers': typeof AuthenticatedMastersPreparersRoute
-  '/masters/users': typeof AuthenticatedMastersUsersRoute
-  '/quotations/$id': typeof AuthenticatedQuotationsIdRoute
-  '/quotations/new': typeof AuthenticatedQuotationsNewRoute
-  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
-  '/quotations': typeof AuthenticatedQuotationsIndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/mail-settings': typeof MailSettingsRoute
+  '/summary': typeof SummaryRoute
+  '/masters/bdms': typeof MastersBdmsRoute
+  '/masters/clients': typeof MastersClientsRoute
+  '/masters/companies': typeof MastersCompaniesRoute
+  '/masters/preparers': typeof MastersPreparersRoute
+  '/masters/users': typeof MastersUsersRoute
+  '/quotations/$id': typeof QuotationsIdRoute
+  '/quotations/new': typeof QuotationsNewRoute
+  '/quotations': typeof QuotationsIndexRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/mail-settings': typeof AuthenticatedMailSettingsRoute
-  '/_authenticated/summary': typeof AuthenticatedSummaryRoute
-  '/_authenticated/masters/bdms': typeof AuthenticatedMastersBdmsRoute
-  '/_authenticated/masters/clients': typeof AuthenticatedMastersClientsRoute
-  '/_authenticated/masters/companies': typeof AuthenticatedMastersCompaniesRoute
-  '/_authenticated/masters/preparers': typeof AuthenticatedMastersPreparersRoute
-  '/_authenticated/masters/users': typeof AuthenticatedMastersUsersRoute
-  '/_authenticated/quotations/$id': typeof AuthenticatedQuotationsIdRoute
-  '/_authenticated/quotations/new': typeof AuthenticatedQuotationsNewRoute
-  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
-  '/_authenticated/quotations/': typeof AuthenticatedQuotationsIndexRoute
+  '/dashboard': typeof DashboardRoute
+  '/mail-settings': typeof MailSettingsRoute
+  '/summary': typeof SummaryRoute
+  '/masters/bdms': typeof MastersBdmsRoute
+  '/masters/clients': typeof MastersClientsRoute
+  '/masters/companies': typeof MastersCompaniesRoute
+  '/masters/preparers': typeof MastersPreparersRoute
+  '/masters/users': typeof MastersUsersRoute
+  '/quotations/$id': typeof QuotationsIdRoute
+  '/quotations/new': typeof QuotationsNewRoute
+  '/quotations/': typeof QuotationsIndexRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -164,8 +149,8 @@ export interface FileRouteTypes {
     | '/masters/users'
     | '/quotations/$id'
     | '/quotations/new'
-    | '/api/attachments/$id'
     | '/quotations/'
+    | '/api/files/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -179,30 +164,39 @@ export interface FileRouteTypes {
     | '/masters/users'
     | '/quotations/$id'
     | '/quotations/new'
-    | '/api/attachments/$id'
     | '/quotations'
+    | '/api/files/$'
   id:
     | '__root__'
     | '/'
-    | '/_authenticated'
-    | '/_authenticated/dashboard'
-    | '/_authenticated/mail-settings'
-    | '/_authenticated/summary'
-    | '/_authenticated/masters/bdms'
-    | '/_authenticated/masters/clients'
-    | '/_authenticated/masters/companies'
-    | '/_authenticated/masters/preparers'
-    | '/_authenticated/masters/users'
-    | '/_authenticated/quotations/$id'
-    | '/_authenticated/quotations/new'
-    | '/api/attachments/$id'
-    | '/_authenticated/quotations/'
+    | '/dashboard'
+    | '/mail-settings'
+    | '/summary'
+    | '/masters/bdms'
+    | '/masters/clients'
+    | '/masters/companies'
+    | '/masters/preparers'
+    | '/masters/users'
+    | '/quotations/$id'
+    | '/quotations/new'
+    | '/quotations/'
+    | '/api/files/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
+  DashboardRoute: typeof DashboardRoute
+  MailSettingsRoute: typeof MailSettingsRoute
+  SummaryRoute: typeof SummaryRoute
+  MastersBdmsRoute: typeof MastersBdmsRoute
+  MastersClientsRoute: typeof MastersClientsRoute
+  MastersCompaniesRoute: typeof MastersCompaniesRoute
+  MastersPreparersRoute: typeof MastersPreparersRoute
+  MastersUsersRoute: typeof MastersUsersRoute
+  QuotationsIdRoute: typeof QuotationsIdRoute
+  QuotationsNewRoute: typeof QuotationsNewRoute
+  QuotationsIndexRoute: typeof QuotationsIndexRoute
+  ApiFilesSplatRoute: typeof ApiFilesSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -214,135 +208,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
+    '/dashboard': {
+      id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/mail-settings': {
-      id: '/_authenticated/mail-settings'
+    '/mail-settings': {
+      id: '/mail-settings'
       path: '/mail-settings'
       fullPath: '/mail-settings'
-      preLoaderRoute: typeof AuthenticatedMailSettingsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MailSettingsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/summary': {
-      id: '/_authenticated/summary'
+    '/summary': {
+      id: '/summary'
       path: '/summary'
       fullPath: '/summary'
-      preLoaderRoute: typeof AuthenticatedSummaryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof SummaryRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/masters/bdms': {
-      id: '/_authenticated/masters/bdms'
+    '/masters/bdms': {
+      id: '/masters/bdms'
       path: '/masters/bdms'
       fullPath: '/masters/bdms'
-      preLoaderRoute: typeof AuthenticatedMastersBdmsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MastersBdmsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/masters/clients': {
-      id: '/_authenticated/masters/clients'
+    '/masters/clients': {
+      id: '/masters/clients'
       path: '/masters/clients'
       fullPath: '/masters/clients'
-      preLoaderRoute: typeof AuthenticatedMastersClientsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MastersClientsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/masters/companies': {
-      id: '/_authenticated/masters/companies'
+    '/masters/companies': {
+      id: '/masters/companies'
       path: '/masters/companies'
       fullPath: '/masters/companies'
-      preLoaderRoute: typeof AuthenticatedMastersCompaniesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MastersCompaniesRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/masters/preparers': {
-      id: '/_authenticated/masters/preparers'
+    '/masters/preparers': {
+      id: '/masters/preparers'
       path: '/masters/preparers'
       fullPath: '/masters/preparers'
-      preLoaderRoute: typeof AuthenticatedMastersPreparersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MastersPreparersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/masters/users': {
-      id: '/_authenticated/masters/users'
+    '/masters/users': {
+      id: '/masters/users'
       path: '/masters/users'
       fullPath: '/masters/users'
-      preLoaderRoute: typeof AuthenticatedMastersUsersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof MastersUsersRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/quotations/': {
-      id: '/_authenticated/quotations/'
+    '/quotations/': {
+      id: '/quotations/'
       path: '/quotations'
       fullPath: '/quotations/'
-      preLoaderRoute: typeof AuthenticatedQuotationsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof QuotationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/quotations/$id': {
-      id: '/_authenticated/quotations/$id'
+    '/quotations/$id': {
+      id: '/quotations/$id'
       path: '/quotations/$id'
       fullPath: '/quotations/$id'
-      preLoaderRoute: typeof AuthenticatedQuotationsIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof QuotationsIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/quotations/new': {
-      id: '/_authenticated/quotations/new'
+    '/quotations/new': {
+      id: '/quotations/new'
       path: '/quotations/new'
       fullPath: '/quotations/new'
-      preLoaderRoute: typeof AuthenticatedQuotationsNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof QuotationsNewRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/api/attachments/$id': {
-      id: '/api/attachments/$id'
-      path: '/api/attachments/$id'
-      fullPath: '/api/attachments/$id'
-      preLoaderRoute: typeof ApiAttachmentsIdRouteImport
+    '/api/files/$': {
+      id: '/api/files/$'
+      path: '/api/files/$'
+      fullPath: '/api/files/$'
+      preLoaderRoute: typeof ApiFilesSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedMailSettingsRoute: typeof AuthenticatedMailSettingsRoute
-  AuthenticatedSummaryRoute: typeof AuthenticatedSummaryRoute
-  AuthenticatedMastersBdmsRoute: typeof AuthenticatedMastersBdmsRoute
-  AuthenticatedMastersClientsRoute: typeof AuthenticatedMastersClientsRoute
-  AuthenticatedMastersCompaniesRoute: typeof AuthenticatedMastersCompaniesRoute
-  AuthenticatedMastersPreparersRoute: typeof AuthenticatedMastersPreparersRoute
-  AuthenticatedMastersUsersRoute: typeof AuthenticatedMastersUsersRoute
-  AuthenticatedQuotationsIdRoute: typeof AuthenticatedQuotationsIdRoute
-  AuthenticatedQuotationsNewRoute: typeof AuthenticatedQuotationsNewRoute
-  AuthenticatedQuotationsIndexRoute: typeof AuthenticatedQuotationsIndexRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedMailSettingsRoute: AuthenticatedMailSettingsRoute,
-  AuthenticatedSummaryRoute: AuthenticatedSummaryRoute,
-  AuthenticatedMastersBdmsRoute: AuthenticatedMastersBdmsRoute,
-  AuthenticatedMastersClientsRoute: AuthenticatedMastersClientsRoute,
-  AuthenticatedMastersCompaniesRoute: AuthenticatedMastersCompaniesRoute,
-  AuthenticatedMastersPreparersRoute: AuthenticatedMastersPreparersRoute,
-  AuthenticatedMastersUsersRoute: AuthenticatedMastersUsersRoute,
-  AuthenticatedQuotationsIdRoute: AuthenticatedQuotationsIdRoute,
-  AuthenticatedQuotationsNewRoute: AuthenticatedQuotationsNewRoute,
-  AuthenticatedQuotationsIndexRoute: AuthenticatedQuotationsIndexRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
+  DashboardRoute: DashboardRoute,
+  MailSettingsRoute: MailSettingsRoute,
+  SummaryRoute: SummaryRoute,
+  MastersBdmsRoute: MastersBdmsRoute,
+  MastersClientsRoute: MastersClientsRoute,
+  MastersCompaniesRoute: MastersCompaniesRoute,
+  MastersPreparersRoute: MastersPreparersRoute,
+  MastersUsersRoute: MastersUsersRoute,
+  QuotationsIdRoute: QuotationsIdRoute,
+  QuotationsNewRoute: QuotationsNewRoute,
+  QuotationsIndexRoute: QuotationsIndexRoute,
+  ApiFilesSplatRoute: ApiFilesSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

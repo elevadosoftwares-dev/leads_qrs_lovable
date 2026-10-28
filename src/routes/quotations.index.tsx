@@ -2,11 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Plus, Trash2, Eye } from "lucide-react";
 import { AppShell, Card, StatusBadge, btnPrimary, inputCls } from "@/components/AppShell";
-import { canDelete } from "@/lib/permissions";
-import { useAction, useMasters, useQuotations, useSession } from "@/lib/queries";
-import { deleteQuotation } from "@/lib/quotations.functions";
+import { useStore, canDelete } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/quotations/")({
+export const Route = createFileRoute("/quotations/")({
   validateSearch: (s: Record<string, unknown>): { company?: string | undefined } => ({
     company: typeof s["company"] === "string" ? (s["company"] as string) : undefined,
   }),
@@ -24,10 +22,7 @@ export const Route = createFileRoute("/_authenticated/quotations/")({
 });
 
 function List() {
-  const { session, isAdmin } = useSession();
-  const { companies, clients, projects } = useMasters();
-  const { data: quotations = [] } = useQuotations();
-  const run = useAction();
+  const { data, update, session, isAdmin } = useStore();
   const sp = Route.useSearch();
   const [company, setCompany] = useState(sp.company ?? "");
   const [client, setClient] = useState("");
@@ -36,26 +31,34 @@ function List() {
   const [qno, setQno] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const name = (arr: { id: string; name: string }[], id: string) =>
+    arr.find((x) => x.id === id)?.name ?? "—";
 
   const rows = useMemo(
     () =>
-      quotations.filter(
-        (q) =>
-          (!company || q.companyId === company) &&
-          (!client || q.clientId === client) &&
-          (!project || q.projectId === project) &&
-          (!status || q.status === status) &&
-          (!qno || q.number.toLowerCase().includes(qno.toLowerCase())) &&
-          (!from || q.createdAt.slice(0, 10) >= from) &&
-          (!to || q.createdAt.slice(0, 10) <= to),
-      ),
-    [quotations, company, client, project, status, qno, from, to],
+      data.quotations
+        .filter(
+          (q) =>
+            (!company || q.companyId === company) &&
+            (!client || q.clientId === client) &&
+            (!project || q.projectId === project) &&
+            (!status || q.status === status) &&
+            (!qno || q.number.toLowerCase().includes(qno.toLowerCase())) &&
+            (!from || q.createdAt.slice(0, 10) >= from) &&
+            (!to || q.createdAt.slice(0, 10) <= to),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [data.quotations, company, client, project, status, qno, from, to],
   );
 
   const del = (id: string) => {
     if (!canDelete(session?.role)) return;
     if (confirm("Delete this quotation permanently?"))
-      void run(() => deleteQuotation({ data: { id } }), "quotations");
+      update((d) => ({
+        ...d,
+        quotations: d.quotations.filter((q) => q.id !== id),
+        logs: d.logs.filter((l) => l.quotationId !== id),
+      }));
   };
 
   return (
@@ -74,7 +77,7 @@ function List() {
       <div className="mb-6 grid gap-3 rounded-xl border bg-card p-4 shadow-card sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <select className={inputCls} value={company} onChange={(e) => setCompany(e.target.value)}>
           <option value="">All Group Companies</option>
-          {companies.map((c) => (
+          {data.companies.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -95,7 +98,7 @@ function List() {
           }}
         >
           <option value="">All Clients</option>
-          {clients.map((c) => (
+          {data.clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -103,7 +106,7 @@ function List() {
         </select>
         <select className={inputCls} value={project} onChange={(e) => setProject(e.target.value)}>
           <option value="">All Projects</option>
-          {projects
+          {data.projects
             .filter((p) => !client || p.clientId === client)
             .map((p) => (
               <option key={p.id} value={p.id}>
@@ -163,46 +166,49 @@ function List() {
                   </td>
                 </tr>
               )}
-              {rows.map((q) => (
-                <tr key={q.id} className="hover:bg-muted/50">
-                  <td className="px-4 py-3">
-                    <span className="rounded-md bg-info-soft px-2 py-0.5 font-semibold text-primary">
-                      {q.number}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">{q.companyName}</td>
-                  <td className="px-4 py-3 font-semibold">{q.clientName}</td>
-                  <td className="px-4 py-3">{q.projectName}</td>
-                  <td className="px-4 py-3">{q.pocName}</td>
-                  <td className="px-4 py-3">{q.preparedForName}</td>
-                  <td className="px-4 py-3">{q.preparedBy}</td>
-                  <td className="px-4 py-3">{q.files}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={q.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      <Link
-                        to="/quotations/$id"
-                        params={{ id: q.id }}
-                        className="rounded-md p-2 text-primary hover:bg-info-soft"
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                      {canDelete(session?.role) && (
-                        <button
-                          onClick={() => del(q.id)}
-                          className="rounded-md p-2 text-destructive hover:bg-danger-soft"
-                          title="Delete (Admin only)"
+              {rows.map((q) => {
+                const p = data.projects.find((x) => x.id === q.projectId);
+                return (
+                  <tr key={q.id} className="hover:bg-muted/50">
+                    <td className="px-4 py-3">
+                      <span className="rounded-md bg-info-soft px-2 py-0.5 font-semibold text-primary">
+                        {q.number}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">{name(data.companies, q.companyId)}</td>
+                    <td className="px-4 py-3 font-semibold">{name(data.clients, q.clientId)}</td>
+                    <td className="px-4 py-3">{p?.name}</td>
+                    <td className="px-4 py-3">{p?.pocName}</td>
+                    <td className="px-4 py-3">{name(data.bdms, q.preparedForId)}</td>
+                    <td className="px-4 py-3">{q.preparedBy}</td>
+                    <td className="px-4 py-3">{q.attachments.length}</td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={q.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Link
+                          to="/quotations/$id"
+                          params={{ id: q.id }}
+                          className="rounded-md p-2 text-primary hover:bg-info-soft"
+                          title="View"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        {canDelete(session?.role) && (
+                          <button
+                            onClick={() => del(q.id)}
+                            className="rounded-md p-2 text-destructive hover:bg-danger-soft"
+                            title="Delete (Admin only)"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

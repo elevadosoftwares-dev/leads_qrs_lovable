@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { MasterTable } from "@/components/MasterTable";
-import { deleteMailSetting, saveMailSetting, type MailSetting } from "@/lib/masters.functions";
-import { useAction, useMailSettings, useSession } from "@/lib/queries";
+import { DAILY_ACCESS_THRESHOLD } from "@/lib/quotation-rules";
+import { useStore, type MailSetting } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/mail-settings")({
+export const Route = createFileRoute("/mail-settings")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/mail-settings")({
 });
 
 function Page() {
-  const { isAdmin } = useSession();
+  const { data, update, isAdmin } = useStore();
   return (
     <AppShell title="Mail Settings">
       {isAdmin && (
@@ -32,27 +32,27 @@ function Page() {
               Email alerts are not active. Set up an email domain to enable sending.
             </p>
           </div>
-          <MailTable />
+          <MasterTable<MailSetting>
+            title="Notification Mail"
+            rows={data.mail}
+            cols={[
+              { key: "from", label: "From Mail", required: true },
+              { key: "to", label: "Recipient Email", type: "email", required: true },
+              { key: "subject", label: "Subject", required: true },
+            ]}
+            onSave={(r) => {
+              const row = { ...r, threshold: DAILY_ACCESS_THRESHOLD };
+              update((d) => ({
+                ...d,
+                mail: d.mail.some((x) => x.id === r.id)
+                  ? d.mail.map((x) => (x.id === r.id ? row : x))
+                  : [...d.mail, row],
+              }));
+            }}
+            onDelete={(id) => update((d) => ({ ...d, mail: d.mail.filter((x) => x.id !== id) }))}
+          />
         </>
       )}
     </AppShell>
-  );
-}
-
-function MailTable() {
-  const mail = useMailSettings();
-  const run = useAction();
-  return (
-    <MasterTable<MailSetting>
-      title="Notification Mail"
-      rows={mail}
-      cols={[
-        { key: "from", label: "From Mail", required: true },
-        { key: "to", label: "Recipient Email", type: "email", required: true },
-        { key: "subject", label: "Subject", required: true },
-      ]}
-      onSave={async (r) => (await run(() => saveMailSetting({ data: r }), "mail")).ok}
-      onDelete={(id) => void run(() => deleteMailSetting({ data: { id } }), "mail")}
-    />
   );
 }

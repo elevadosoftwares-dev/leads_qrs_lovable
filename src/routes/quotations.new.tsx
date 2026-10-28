@@ -1,15 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Plus, X, FileText } from "lucide-react";
+import { ArrowLeft, Plus, X, FileText, Eye } from "lucide-react";
 import { AppShell, Card, Field, btnPrimary, btnGhost, inputCls } from "@/components/AppShell";
+import { useStore, uid, type Attachment, type Status } from "@/lib/store";
+import { PdfPreview, downloadAttachment } from "@/components/PdfPreview";
+import { Button } from "@/components/ui/button";
 import { manualQuotationNumber } from "@/lib/quotation-rules";
-import { saveClient, saveProject } from "@/lib/masters.functions";
-import type { Status } from "@/lib/permissions";
-import { useAction, useMasters, useQuotations, useSession } from "@/lib/queries";
-import { CATEGORIES, createQuotation } from "@/lib/quotations.functions";
-import { acceptPdfs, type PendingFile } from "@/lib/uploads";
+import { readFiles, CATEGORIES } from "@/lib/files";
 
-export const Route = createFileRoute("/_authenticated/quotations/new")({
+export const Route = createFileRoute("/quotations/new")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -24,10 +23,7 @@ export const Route = createFileRoute("/_authenticated/quotations/new")({
 });
 
 function NewQuotation() {
-  const { isAdmin } = useSession();
-  const data = useMasters();
-  const { data: quotations = [] } = useQuotations();
-  const run = useAction();
+  const { data, update, session, isAdmin } = useStore();
   const navigate = useNavigate();
   const [f, setF] = useState({
     number: "",
@@ -39,19 +35,25 @@ function NewQuotation() {
     preparedBy: "",
     note1: "",
     note2: "",
+    amount: "",
     status: "Pending" as Status,
     failReason: "",
   });
-  const [files, setFiles] = useState<PendingFile[]>([]);
-  const [cat, setCat] = useState(CATEGORIES[0] ?? "");
-  const [newClient, setNewClient] = useState<null | { name: string }>(null);
+  const [files, setFiles] = useState<Attachment[]>([]);
+  const [preview, setPreview] = useState<Attachment | null>(null);
+  const [cat, setCat] = useState(CATEGORIES[0]);
+  const [newClient, setNewClient] = useState<null | {
+    name: string;
+    email: string;
+    mobile: string;
+  }>(null);
   const [newProject, setNewProject] = useState<null | {
     name: string;
     pocName: string;
+    pocEmail: string;
     pocPhone: string;
   }>(null);
   const [err, setErr] = useState("");
-  const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   if (!isAdmin)
@@ -61,29 +63,27 @@ function NewQuotation() {
       </AppShell>
     );
 
-  const addClient = async () => {
+  const saveClient = () => {
     if (!newClient?.name.trim()) return;
-    const r = await run(() => saveClient({ data: { id: "", name: newClient.name } }), "masters");
-    if (!r.ok) return;
-    setF((p) => ({ ...p, clientId: r.value, projectId: "" }));
+    const id = uid();
+    update((d) => ({ ...d, clients: [...d.clients, { id, ...newClient }] }));
+    setF((p) => ({ ...p, clientId: id, projectId: "" }));
     setNewClient(null);
   };
-  const addProject = async () => {
-    if (!newProject?.name.trim() || !f.clientId) return;
-    const r = await run(
-      () => saveProject({ data: { id: "", clientId: f.clientId, ...newProject } }),
-      "masters",
-    );
-    if (!r.ok) return;
-    set("projectId", r.value);
+  const saveProject = () => {
+    if (!newProject?.name || !f.clientId) return;
+    const id = uid();
+    update((d) => ({
+      ...d,
+      projects: [...d.projects, { id, clientId: f.clientId, ...newProject }],
+    }));
+    set("projectId", id);
     setNewProject(null);
   };
 
-  const submit = async () => {
-    setErr("");
-    const number = manualQuotationNumber(f.number);
+  const submit = () => {
     if (
-      !number ||
+      !manualQuotationNumber(f.number) ||
       !f.companyId ||
       !f.clientId ||
       !f.projectId ||
@@ -95,27 +95,29 @@ function NewQuotation() {
     if (f.note1.length < 15 || f.note1.length > 60)
       return setErr("Note-1 must be 15–60 characters.");
     if (
-      quotations.some(
-        (q) => q.companyId === f.companyId && q.number.toLowerCase() === number.toLowerCase(),
+      data.quotations.some(
+        (q) =>
+          q.companyId === f.companyId &&
+          q.number.toLowerCase() === manualQuotationNumber(f.number).toLowerCase(),
       )
     )
       return setErr("This quotation number already exists for the selected company.");
-    const form = new FormData();
-    for (const [k, v] of Object.entries(f)) form.append(k, v);
-    for (const p of files) {
-      form.append("file", p.file);
-      form.append("category", p.category);
-    }
-    setSaving(true);
-    try {
-      const { id } = await createQuotation({ data: form });
-      await run(async () => {}, "quotations");
-      navigate({ to: "/quotations/$id", params: { id } });
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
-    }
+    const id = uid();
+    update((d) => ({
+      ...d,
+      quotations: [
+        ...d.quotations,
+        {
+          id,
+          ...f,
+          number: manualQuotationNumber(f.number),
+          amount: Number(f.amount) || 0,
+          attachments: files,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }));
+    navigate({ to: "/quotations/$id", params: { id } });
   };
 
   const project = data.projects.find((p) => p.id === f.projectId);
@@ -179,13 +181,14 @@ function NewQuotation() {
                     ))}
                   </select>
                 </Field>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
-                  onClick={() => setNewClient({ name: "" })}
-                  className="mt-1 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-accent"
+                  onClick={() => setNewClient({ name: "", email: "", mobile: "" })}
+                  className="mt-1 text-xs font-semibold text-primary"
                 >
                   + New client
-                </button>
+                </Button>
               </div>
               <div>
                 <Field label="Project Name" required>
@@ -208,13 +211,16 @@ function NewQuotation() {
                   </select>
                 </Field>
                 {f.clientId && (
-                  <button
+                  <Button
+                    variant="ghost"
                     type="button"
-                    onClick={() => setNewProject({ name: "", pocName: "", pocPhone: "" })}
-                    className="mt-1 rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-accent"
+                    onClick={() =>
+                      setNewProject({ name: "", pocName: "", pocEmail: "", pocPhone: "" })
+                    }
+                    className="mt-1 text-xs font-semibold text-primary"
                   >
                     + New project
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -228,12 +234,17 @@ function NewQuotation() {
                   onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                 />
                 <div className="flex gap-2 sm:col-span-3">
-                  <button type="button" className={btnPrimary} onClick={addClient}>
+                  <Button variant="ghost" type="button" className={btnPrimary} onClick={saveClient}>
                     Save client
-                  </button>
-                  <button type="button" className={btnGhost} onClick={() => setNewClient(null)}>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    className={btnGhost}
+                    onClick={() => setNewClient(null)}
+                  >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -258,12 +269,22 @@ function NewQuotation() {
                   onChange={(e) => setNewProject({ ...newProject, pocPhone: e.target.value })}
                 />
                 <div className="flex gap-2 sm:col-span-2">
-                  <button type="button" className={btnPrimary} onClick={addProject}>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    className={btnPrimary}
+                    onClick={saveProject}
+                  >
                     Save project
-                  </button>
-                  <button type="button" className={btnGhost} onClick={() => setNewProject(null)}>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    className={btnGhost}
+                    onClick={() => setNewProject(null)}
+                  >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -371,32 +392,39 @@ function NewQuotation() {
                   accept="application/pdf"
                   multiple
                   className="hidden"
-                  onChange={(e) => {
-                    const picked = acceptPdfs(Array.from(e.target.files ?? []));
-                    setFiles((p) => [...p, ...picked.map((file) => ({ file, category: cat }))]);
+                  onChange={async (e) => {
+                    const a = await readFiles(e.target.files, cat ?? "", session?.name ?? "");
+                    setFiles((p) => [...p, ...a]);
                     e.target.value = "";
                   }}
                 />
               </label>
               <p className="text-xs text-muted-foreground">PDF · max 5 MB each</p>
               <ul className="space-y-2">
-                {files.map((a, i) => (
+                {files.map((a) => (
                   <li
-                    key={`${a.file.name}-${i}`}
+                    key={a.id}
                     className="flex items-center gap-2 rounded-lg bg-muted p-2 text-sm"
                   >
                     <FileText className="h-4 w-4 shrink-0 text-destructive" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{a.file.name}</div>
+                      <div className="truncate font-medium">{a.name}</div>
                       <div className="text-xs text-muted-foreground">{a.category}</div>
                     </div>
-                    <button
-                      type="button"
-                      className="rounded-md p-2 hover:bg-accent"
-                      onClick={() => setFiles((p) => p.filter((x) => x !== a))}
+                    <Button
+                      variant="ghost"
+                      title="Preview"
+                      className="h-8 w-8 p-0 text-primary hover:bg-info-soft"
+                      onClick={() => setPreview(a)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setFiles((p) => p.filter((x) => x.id !== a.id))}
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -407,17 +435,23 @@ function NewQuotation() {
             <Link to="/quotations" search={{}} className={btnGhost}>
               Cancel
             </Link>
-            <button
-              type="button"
-              disabled={saving}
+            <Button
+              variant="ghost"
               onClick={submit}
               className={`${btnPrimary} flex-1 justify-center`}
             >
-              {saving ? "Saving…" : "Save Quotation"}
-            </button>
+              Save Quotation
+            </Button>
           </div>
         </div>
       </div>
+      <PdfPreview
+        file={preview}
+        onClose={() => setPreview(null)}
+        onDownload={() => {
+          if (preview) downloadAttachment(preview);
+        }}
+      />
     </AppShell>
   );
 }

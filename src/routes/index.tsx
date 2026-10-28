@@ -1,21 +1,11 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { bootstrapFirstAdmin, getSession, isSetupRequired, signIn } from "@/lib/auth.functions";
-import type { Role } from "@/lib/permissions";
-import { sessionQueryKey } from "@/lib/queries";
+import { useStore, type Role } from "@/lib/store";
+import { createFirstAdmin, isSetupRequired } from "@/lib/qrs.functions";
 import { btnPrimary, inputCls, Field } from "@/components/AppShell";
 
 export const Route = createFileRoute("/")({
-  ssr: false,
-  beforeLoad: async ({ context }) => {
-    const session = await context.queryClient.fetchQuery({
-      queryKey: sessionQueryKey,
-      queryFn: () => getSession(),
-      staleTime: 30_000,
-    });
-    if (session) throw redirect({ to: "/dashboard" });
-  },
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -30,34 +20,41 @@ export const Route = createFileRoute("/")({
 });
 
 function Login() {
+  const { login, session, ready } = useStore();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: setup } = useQuery({
-    queryKey: ["setup-required"],
-    queryFn: () => isSetupRequired(),
-  });
-  const firstRun = setup?.setupRequired === true;
   const [role, setRole] = useState<Role>("Admin");
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
+  const { data: setup } = useQuery({
+    queryKey: ["setup-required"],
+    queryFn: () => isSetupRequired(),
+  });
+  const firstRun = setup?.setupRequired === true;
+  useEffect(() => {
+    if (ready && session) navigate({ to: "/dashboard" });
+  }, [ready, session, navigate]);
 
-  const submit = async () => {
+  async function submit() {
     setErr("");
     setBusy(true);
     try {
-      if (firstRun) await bootstrapFirstAdmin({ data: { username: u.trim(), name, password: p } });
-      await signIn({ data: { username: u.trim(), password: p, role: firstRun ? "Admin" : role } });
-      await queryClient.invalidateQueries();
-      navigate({ to: "/dashboard" });
+      if (firstRun) {
+        await createFirstAdmin({ data: { username: u.trim(), name: name.trim(), password: p } });
+        await qc.invalidateQueries({ queryKey: ["setup-required"] });
+      }
+      const r = await login(u.trim(), p, firstRun ? "Admin" : role);
+      if (r) setErr(r);
+      else navigate({ to: "/dashboard" });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(e instanceof Error ? e.message : "Could not sign in");
     } finally {
       setBusy(false);
     }
-  };
+  }
 
   return (
     <div className="grid min-h-screen bg-login lg:grid-cols-2">
@@ -89,42 +86,39 @@ function Login() {
             void submit();
           }}
         >
-          {firstRun ? (
-            <div>
-              <h1 className="text-2xl font-bold">Set up Leads QRS</h1>
-              <p className="text-sm text-muted-foreground">
-                Create the first Admin account to get started
-              </p>
-            </div>
-          ) : (
-            <>
-              <div>
-                <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-sm text-muted-foreground">Sign in to access the system</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
-                {(["Admin", "User"] as Role[]).map((r) => (
-                  <button
-                    type="button"
-                    key={r}
-                    onClick={() => setRole(r)}
-                    className={`rounded-md py-2 text-sm font-semibold ${role === r ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold">
+              {firstRun ? "Create the administrator" : "Welcome back"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {firstRun
+                ? "No accounts exist yet. This first account will be an Admin."
+                : "Sign in to access the system"}
+            </p>
+          </div>
           {firstRun && (
             <Field label="Full name">
               <input
                 className={inputCls}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="Enter your name"
               />
             </Field>
+          )}
+          {!firstRun && (
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              {(["Admin", "User"] as Role[]).map((r) => (
+                <button
+                  type="button"
+                  key={r}
+                  onClick={() => setRole(r)}
+                  className={`rounded-md py-2 text-sm font-semibold ${role === r ? "bg-card text-primary shadow-card" : "text-muted-foreground"}`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           )}
           <Field label="User name">
             <input
@@ -134,7 +128,7 @@ function Login() {
               placeholder="Enter your user name"
             />
           </Field>
-          <Field label="Password" {...(firstRun ? { hint: "(at least 8 characters)" } : {})}>
+          <Field label="Password">
             <input
               type="password"
               className={inputCls}
@@ -144,8 +138,8 @@ function Login() {
             />
           </Field>
           {err && <p className="text-sm text-destructive">{err}</p>}
-          <button disabled={busy} className={`${btnPrimary} w-full justify-center`}>
-            {busy ? "Please wait…" : firstRun ? "Create Admin and sign in" : "Sign in"}
+          <button className={`${btnPrimary} w-full justify-center`} disabled={busy}>
+            {firstRun ? "Create Administrator" : "Sign in"}
           </button>
         </form>
       </div>

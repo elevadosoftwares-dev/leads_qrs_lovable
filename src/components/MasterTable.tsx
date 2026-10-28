@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Card, btnPrimary, btnGhost, inputCls } from "./AppShell";
+import { uid } from "@/lib/store";
 
 export interface Col<T> {
   key: keyof T & string;
@@ -10,7 +11,6 @@ export interface Col<T> {
   options?: { value: string; label: string }[];
 }
 
-/** A new row is saved with id "". `onSave` resolves true when the row was saved. */
 export function MasterTable<T extends { id: string }>({
   title,
   cols,
@@ -22,27 +22,20 @@ export function MasterTable<T extends { id: string }>({
   title: string;
   cols: Col<T>[];
   rows: T[];
-  onSave: (row: T) => Promise<boolean>;
+  onSave: (row: T) => void;
   onDelete: (id: string) => void;
   display?: Partial<Record<keyof T, (row: T) => string>>;
 }) {
   const [edit, setEdit] = useState<Record<string, string> | null>(null);
-  const [saving, setSaving] = useState(false);
   const start = (r?: T) =>
     setEdit(r ? Object.fromEntries(Object.entries(r).map(([k, v]) => [k, String(v)])) : { id: "" });
-  const save = async () => {
+  const save = () => {
     if (!edit) return;
     if (cols.some((c) => c.required && !edit[c.key]?.trim()))
       return alert("Please fill required fields");
-    setSaving(true);
-    const ok = await onSave({ ...edit, id: edit["id"] ?? "" } as unknown as T);
-    setSaving(false);
-    if (ok) setEdit(null);
+    onSave({ ...edit, id: edit["id"] || uid() } as unknown as T);
+    setEdit(null);
   };
-  const placeholder = (c: Col<T>) =>
-    c.type === "password" && edit?.["id"]
-      ? `${c.label} (leave blank to keep)`
-      : c.label + (c.required ? " *" : "");
   return (
     <Card
       title={title}
@@ -78,15 +71,15 @@ export function MasterTable<T extends { id: string }>({
                 key={c.key}
                 type={c.type ?? "text"}
                 className={inputCls}
-                placeholder={placeholder(c)}
+                placeholder={c.label + (c.required ? " *" : "")}
                 value={edit[c.key] ?? ""}
                 onChange={(e) => setEdit({ ...edit, [c.key]: e.target.value })}
               />
             ),
           )}
           <div className="flex gap-2 sm:col-span-2 lg:col-span-3">
-            <button className={btnPrimary} disabled={saving} onClick={save}>
-              {saving ? "Saving…" : "Save"}
+            <button className={btnPrimary} onClick={save}>
+              Save
             </button>
             <button className={btnGhost} onClick={() => setEdit(null)}>
               Cancel

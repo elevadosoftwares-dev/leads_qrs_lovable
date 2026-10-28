@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { MasterTable } from "@/components/MasterTable";
-import { deleteCompany, saveCompany, type Company } from "@/lib/masters.functions";
-import { useAction, useMasters, useSession } from "@/lib/queries";
+import { useStore, type Company } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/masters/companies")({
+export const Route = createFileRoute("/masters/companies")({
   head: () => ({
     meta: [
       { property: "og:type", content: "website" },
@@ -19,23 +18,32 @@ export const Route = createFileRoute("/_authenticated/masters/companies")({
 });
 
 function Page() {
-  const { isAdmin } = useSession();
-  const { companies } = useMasters();
-  const run = useAction();
+  const { data, update, isAdmin } = useStore();
   return (
     <AppShell title="Lead Group of Company">
       {isAdmin && (
         <MasterTable<Company>
           title="Lead Group of Company"
-          rows={companies}
+          rows={data.companies}
           cols={[
             { key: "name", label: "Group Company Name", required: true },
             { key: "code", label: "Company Code", required: true },
           ]}
-          onSave={async (r) =>
-            (await run(() => saveCompany({ data: r }), "masters", "quotations")).ok
+          onSave={(r) =>
+            update((d) => ({
+              ...d,
+              companies: d.companies.some((x) => x.id === r.id)
+                ? d.companies.map((x) =>
+                    x.id === r.id ? { ...x, ...r, code: r.code.toUpperCase() } : x,
+                  )
+                : [...d.companies, { ...r, code: r.code.toUpperCase(), color: "blue" }],
+            }))
           }
-          onDelete={(id) => void run(() => deleteCompany({ data: { id } }), "masters")}
+          onDelete={(id) => {
+            if (data.quotations.some((q) => q.companyId === id))
+              return alert("Company has quotations and cannot be deleted.");
+            update((d) => ({ ...d, companies: d.companies.filter((x) => x.id !== id) }));
+          }}
         />
       )}
     </AppShell>

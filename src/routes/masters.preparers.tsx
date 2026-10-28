@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { MasterTable } from "@/components/MasterTable";
-import { deletePreparer, savePreparer, type Preparer } from "@/lib/masters.functions";
-import { useAction, useMasters, useSession } from "@/lib/queries";
+import { useStore, type Preparer } from "@/lib/store";
 
-export const Route = createFileRoute("/_authenticated/masters/preparers")({
+export const Route = createFileRoute("/masters/preparers")({
   head: () => ({
     meta: [
       { title: "Prepared By / Added By · Leads QRS" },
@@ -19,18 +18,28 @@ export const Route = createFileRoute("/_authenticated/masters/preparers")({
 });
 
 function Page() {
-  const { isAdmin } = useSession();
-  const { preparers } = useMasters();
-  const run = useAction();
+  const { data, update, isAdmin } = useStore();
   return (
     <AppShell title="Prepared By / Added By">
       {isAdmin && (
         <MasterTable<Preparer>
           title="Staff Master List"
-          rows={preparers}
+          rows={data.preparers}
           cols={[{ key: "name", label: "Staff Name", required: true }]}
-          onSave={async (r) => (await run(() => savePreparer({ data: r }), "masters")).ok}
-          onDelete={(id) => void run(() => deletePreparer({ data: { id } }), "masters")}
+          onSave={(r) =>
+            update((d) => ({
+              ...d,
+              preparers: d.preparers.some((x) => x.id === r.id)
+                ? d.preparers.map((x) => (x.id === r.id ? r : x))
+                : [...d.preparers, r],
+            }))
+          }
+          onDelete={(id) => {
+            const person = data.preparers.find((p) => p.id === id);
+            if (person && data.quotations.some((q) => q.preparedBy === person.name))
+              return alert("Staff member has quotations and cannot be deleted.");
+            update((d) => ({ ...d, preparers: d.preparers.filter((x) => x.id !== id) }));
+          }}
         />
       )}
     </AppShell>
